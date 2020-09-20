@@ -21,6 +21,10 @@ SOURCES = [
     'https://aws.amazon.com/blogs/infrastructure-and-automation/feed/', # The Infrastructure and Automation blog
 ]
 
+EXTRA_SOURCE = 'https://aws.amazon.com/blogs/opensource/feed/' # The Open Source Blog
+
+SOURCES_2 = SOURCES.copy()
+SOURCES_2.append(EXTRA_SOURCE)
 
 def test_handler(monkeypatch):
     dynamodb = boto3.resource('dynamodb')
@@ -65,6 +69,17 @@ def test_handler(monkeypatch):
     responses.append(queue.receive_messages(MessageAttributeNames = ['All'])[0])
     responses.append(queue.receive_messages(MessageAttributeNames = ['All'])[0])
     assert [json.loads(response.body)['source'] for response in responses] == SOURCES
+
+    table.put_item(Item={'source': EXTRA_SOURCE})
+
+    index.handler({}, {})
+
+    responses = []
+    responses.append(queue.receive_messages(MessageAttributeNames = ['All'])[0])
+    responses.append(queue.receive_messages(MessageAttributeNames = ['All'])[0])
+    responses.append(queue.receive_messages(MessageAttributeNames = ['All'])[0])
+    responses.append(queue.receive_messages(MessageAttributeNames = ['All'])[0])
+    assert [json.loads(response.body)['source'] for response in responses] == SOURCES_2    
 
 #m_sqs.stop()
 #m_dynamodb.stop()
